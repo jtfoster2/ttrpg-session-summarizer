@@ -19,6 +19,11 @@ def main():
     parser.add_argument('--whisper', default='base.en', help='Whisper model size (tiny.en, base.en, small.en, medium.en)')
     parser.add_argument('--echo-transcript', default=False, type=bool, help='Echoes the active transcription to the console if set to True, otherwise it displays a progress bar.')
 
+    # Diarization options (pyannote 4.0 self-hosted pipeline)
+    parser.add_argument('--diarize', default=False, type=bool, help='Enable speaker diarization (requires local pyannote pipeline).')
+    parser.add_argument('--diarization-model', default=None, help='Path to local pyannote pipeline directory (e.g., community-1).')
+    parser.add_argument('--num-speakers', type=int, default=None, help='Optional fixed number of speakers for diarization.')
+
     parser.add_argument('--backend', choices=['ollama', 'transformers'], default='ollama', help='Summarizer backend')
     parser.add_argument('--ollama-url', default='http://localhost:11434', help='Ollama base URL')
     parser.add_argument('--ollama-model', default='gemma:2b', help='Ollama model name')
@@ -39,7 +44,14 @@ def main():
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
     print(f"Transcribing: {input_path}")
-    transcript = transcribe_m4a(str(input_path), model_size=args.whisper)
+    transcript = transcribe_m4a(
+        str(input_path),
+        model_size=args.whisper,
+        verbose=bool(args.echo_transcript),
+        diarize=bool(args.diarize),
+        diarization_model_path=args.diarization_model,
+        num_speakers=args.num_speakers,
+    )
 
     t_out, s_out = default_output_paths(input_path, args.transcript_out, args.summary_out)
     t_out.write_text(transcript, encoding='utf-8')
