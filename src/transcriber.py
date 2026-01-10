@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import whisper
 
@@ -104,6 +104,50 @@ def _assign_speakers_to_whisper_segments(diarization, whisper_segments):
         lines.append(line)
     return lines
 
+def _apply_naive_diarization(
+    whisper_segments: List[dict],
+    n_speakers: int = 5,
+    gap_threshold: float = 0.8,
+) -> Optional[str]:
+    """Tokenless diarization heuristic based on segment gaps.
+
+    - Assumes a small number of speakers.
+    - Alternates/cycles speaker id when a gap between segments exceeds gap_threshold.
+    - Keeps current speaker within continuous speech blocks.
+    """
+    if not whisper_segments:
+        return None
+
+    # Sort by start time to be safe
+    segs = sorted(
+        (
+            {
+                'start': float(s.get('start', 0.0) or 0.0),
+                'end': float(s.get('end', 0.0) or 0.0),
+                'text': (s.get('text') or '').strip(),
+            }
+            for s in whisper_segments
+        ),
+        key=lambda x: x['start']
+    )
+
+    lines: List[str] = []
+    current_speaker = 0
+    last_end = None
+
+    for s in segs:
+        txt = s['text']
+        if not txt:
+            continue
+        if last_end is not None:
+            gap = max(0.0, s['start'] - last_end)
+            if gap > gap_threshold:
+                current_speaker = (current_speaker + 1) % max(1, n_speakers)
+        spk_label = f"SPEAKER_{current_speaker:02d}"
+        lines.append(f"{spk_label}: {txt}")
+        last_end = s['end'] if s['end'] >= s['start'] else s['start']
+
+    return "\n".join(lines) if lines else None
 
 def transcribe_m4a(
     input_path: str | os.PathLike,
@@ -112,6 +156,7 @@ def transcribe_m4a(
     diarize: bool = False,
     diarization_model_path: Optional[str] = None,
     num_speakers: Optional[int] = None,
+    naive_gap_threshold: Optional[float] = None,
 ) -> str:
     """Transcribe an audio file using a local Whisper model.
 
@@ -122,6 +167,7 @@ def transcribe_m4a(
         diarize: When True, apply speaker diarization and prefix lines with speaker labels.
         diarization_model_path: Path to a local pyannote 4.0 self-hosted pipeline directory (e.g., community-1).
         num_speakers: Optional fixed number of speakers to guide diarization.
+        naive_gap_threshold: Gap seconds threshold for naive diarization (if no diarization_model_path provided).
 
     Returns:
         Transcript text. If diarize=True, returns multi-line speaker-attributed transcript.
@@ -147,9 +193,8 @@ def transcribe_m4a(
 
     # Diarization requested: load pyannote pipeline and infer speakers
     if not diarization_model_path:
-        raise ValueError(
-            "Diarization requested but no diarization_model_path provided. Provide path to self-hosted 'community-1' pipeline directory."
-        )
+        print("Diarization requested but no diarization_model_path provided. Provide path to self-hosted 'community-1' pipeline directory. Defaulting to naive diarization based on segment gaps.")
+        return _apply_naive_diarization(result.get('segments'), n_speakers=num_speakers, gap_threshold=naive_gap_threshold)
 
     print(f"Loading diarization pipeline from: {diarization_model_path}")
     pipeline = _load_pyannote_pipeline(diarization_model_path)

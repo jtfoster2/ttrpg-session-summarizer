@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--diarize', default=False, type=bool, help='Enable speaker diarization (requires local pyannote pipeline).')
     parser.add_argument('--diarization-model', default=None, help='Path to local pyannote pipeline directory (e.g., community-1).')
     parser.add_argument('--num-speakers', type=int, default=None, help='Optional fixed number of speakers for diarization.')
+    parser.add_argument('--naive-gap-threshold', type=float, default=None, help='Gap seconds threshold for naive diarization (if no diarization_model_path provided).')
 
     parser.add_argument('--backend', choices=['ollama', 'transformers'], default='ollama', help='Summarizer backend')
     parser.add_argument('--ollama-url', default='http://localhost:11434', help='Ollama base URL')
