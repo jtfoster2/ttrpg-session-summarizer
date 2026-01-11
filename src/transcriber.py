@@ -156,7 +156,7 @@ def transcribe_m4a(
     diarize: bool = False,
     diarization_model_path: Optional[str] = None,
     num_speakers: Optional[int] = None,
-    naive_gap_threshold: Optional[float] = None,
+    naive_gap_threshold: Optional[float] = 0.8,
 ) -> str:
     """Transcribe an audio file using a local Whisper model.
 
@@ -199,7 +199,7 @@ def transcribe_m4a(
     print(f"Loading diarization pipeline from: {diarization_model_path}")
     pipeline = _load_pyannote_pipeline(diarization_model_path)
 
-    print("Running speaker diarization...")
+    print("Running pyannote community-1 speaker diarization...")
     # pyannote pipeline typically accepts path and optional num_speakers
     try:
         if num_speakers is not None and num_speakers > 0:

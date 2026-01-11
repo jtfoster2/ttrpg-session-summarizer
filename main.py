@@ -17,13 +17,13 @@ def main():
     parser = argparse.ArgumentParser(description="Transcribe an M4A file with Whisper and summarize with Gemma locally.")
     parser.add_argument('--input', required=True, help='Path to M4A file')
     parser.add_argument('--whisper', default='base.en', help='Whisper model size (tiny.en, base.en, small.en, medium.en)')
-    parser.add_argument('--echo-transcript', default=False, type=bool, help='Echoes the active transcription to the console if set to True, otherwise it displays a progress bar.')
+    parser.add_argument('--echo-transcript', action='store_true', help='Echoes the active transcription to the console if set to True, otherwise it displays a progress bar.')
 
     # Diarization options (pyannote 4.0 self-hosted pipeline)
-    parser.add_argument('--diarize', default=False, type=bool, help='Enable speaker diarization (requires local pyannote pipeline).')
+    parser.add_argument('--diarize', action='store_true', help='Enable speaker diarization (requires local pyannote pipeline).')
     parser.add_argument('--diarization-model', default=None, help='Path to local pyannote pipeline directory (e.g., community-1).')
     parser.add_argument('--num-speakers', type=int, default=None, help='Optional fixed number of speakers for diarization.')
-    parser.add_argument('--naive-gap-threshold', type=float, default=None, help='Gap seconds threshold for naive diarization (if no diarization_model_path provided).')
+    parser.add_argument('--naive-gap-threshold', type=float, default=0.8, help='Gap seconds threshold for naive diarization (if no diarization_model_path provided).')
 
     parser.add_argument('--backend', choices=['ollama', 'transformers'], default='ollama', help='Summarizer backend')
     parser.add_argument('--ollama-url', default='http://localhost:11434', help='Ollama base URL')
