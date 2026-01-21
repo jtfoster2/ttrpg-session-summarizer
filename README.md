@@ -2,58 +2,57 @@ Project: Local Transcribe & Summarize (Whisper + Gemma)
 
 This repo bootstraps a simple Python CLI that:
 - Uses a local Whisper model to transcribe an input .m4a audio file.
-- Uses a local Gemma model to summarize the transcription.
+- Uses a local Ollama model (default: gpt-oss:20b) to summarize the transcription.
 
-You can run the summarization either via:
-- Ollama (recommended, simplest local setup), or
-- Hugging Face Transformers (local model, heavier download; CPU works but is slow).
+Summarization is performed via Ollama only (local model served by Ollama).
 
 Requirements (Windows-friendly)
 1) Python 3.10+ (3.12 OK)
 2) FFmpeg installed and in PATH (required by Whisper)
    - Download: https://www.gyan.dev/ffmpeg/builds/ (or via winget: `winget install Gyan.FFmpeg`)
    - Verify: `ffmpeg -version`
-3) (Option A) Ollama for Gemma [recommended]
+3) Ollama for LLM summarization [required]
    - Install: https://ollama.com/download
-   - Pull a Gemma model: `ollama pull gemma:2b` or `ollama pull gemma2:2b-instruct`
-   - Verify it runs: `ollama run gemma:2b "Hello"`
-4) (Option B) Transformers backend for Gemma
-   - Will download a Gemma model locally on first run (several GB).
-   - Works on CPU, but will be slow. If you have a CUDA GPU, install a matching PyTorch build.
+   - Pull the model: `ollama pull gpt-oss:20b`
+   - Verify it runs: `ollama run gpt-oss:20b "Hello"`
 
 Quickstart
 1) Create and activate a virtual environment (optional):
    - PowerShell: `python -m venv .venv; .\.venv\Scripts\Activate.ps1`
 2) Install dependencies:
    - `pip install -r requirements.txt`
-3) Transcribe and summarize using Ollama backend:
-   - `python main.py --input path\to\audio.m4a --whisper tiny --backend ollama --ollama-model gemma:2b`
-4) Or using Transformers backend (CPU):
-   - `python main.py --input path\to\audio.m4a --whisper base --backend transformers --hf-model google/gemma-2-2b-it`
+3) Transcribe and summarize using Ollama:
+   - `python main.py --input path\to\audio.m4a --whisper tiny --ollama-model gpt-oss:20b`
 
 Outputs
 - Transcript is saved next to the input as `yourfile.transcript.txt` (unless you pass --transcript-out)
-- Summary is saved as `yourfile.summary.txt` (unless you pass --summary-out)
+- Summary is saved next to the input as `yourfile.summary.txt` (unless you pass --summary-out)
 
 CLI options
 - --input: Path to .m4a (other audio types supported by ffmpeg may work).
-- --whisper: Whisper model size (tiny.en, base.en, small.en, medium.en,). Default: tiny.en.
-- --backend: Summarizer backend: ollama | transformers. Default: ollama.
+- --whisper: Whisper model size (tiny.en, base.en, small.en, medium.en,). Default: base.en.
+- --echo-transcript: Echoes the active transcription to the console if provided and set to True, otherwise or by default it displays a progress bar.
+
 - --ollama-url: Base URL for Ollama. Default: http://localhost:11434.
-- --ollama-model: Ollama model name. Default: gemma:2b.
-- --hf-model: HF Transformers model id. Default: google/gemma-2-2b-it.
-- --max-summary-tokens: Max new tokens for summary. Default: 300.
+- --ollama-model: Ollama model name. Default: gpt-oss:20b.
+
+- --max-summary-tokens: Max new tokens for summary. Default: -1 (use model default).
 - --temperature: Decoding temperature. Default: 0.2.
-- --transcript-out: Output path for transcript file.
-- --summary-out: Output path for summary file.
+
+- --transcript-out: Output path for the transcript file. Only set if this should be in a different location from the input file.
+- --summary-out: Output path for the summary file. Only set if this should be in a different location from the input file.
+
+- --stream: Stream tokens from Ollama during summarization.
+- --stream-reasoning: While streaming, print the reasoning trace to console if the model provides it.
+- --structured-output: Request JSON structured output from the model.
+- --json-schema: Path to a JSON Schema file to enforce structured output (implies --structured-output).
+- --thinking-level: Thinking level preset for gpt-oss reasoning: low | medium | high (default: medium).
 
 Notes
+- You can customize the summarization prompt used by Ollama by editing the `ollama_prompt` file at the project root. If the file is missing or unreadable, a built-in default instruction will be used.
 - Whisper requires ffmpeg installed and discoverable in PATH. If you see errors like `ffmpeg not found`, install/verify FFmpeg.
-- Large models will be slow on CPU. For faster runs, choose smaller Whisper models (tiny/base) and smaller Gemma variants.
+- Large models will be slow on CPU. For faster runs, choose smaller Whisper models (tiny/base)
 - If you prefer faster transcription on CPU, you can swap to `faster-whisper` with minor code changes.
-
-License
-- Gemma models are subject to Google’s Gemma license. Ensure you are permitted to download/use them locally.
 
 Which Whisper Model Should I Choose? (Copied from https://whisper-api.com/blog/models/)
 
